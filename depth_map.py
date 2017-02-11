@@ -36,42 +36,49 @@ from numpy import linalg as LA
 global cX_l, cX_r, cY_l, cY_r
 #save the camera parameters
 
+fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
+
 #Focal Length
 #fc_left.astype('float')
-fc_left = np.matrix((533.5233, 533.5270), dtype = 'float64')
+fc_left = np.matrix((657.5494, 658.5350), dtype = 'float64')
 print fc_left[0, 1]
 #Principal Point
-cc_left = np.matrix((341.6038, 235.19287), dtype = 'float64')
+cc_left = np.matrix((302.6094, 199.5658), dtype = 'float64')
 #skew
 alpha_c_left = np.array(0.000)
 #distortion Parameters
-kc_left = np.matrix((-0.2884, 0.0971, 0.00109, -0.0003, 0.0000), dtype = 'float64')
+kc_left = np.matrix((0.2944, -0.55615, -0.01866, 0.01300, 0.0000), dtype = 'float64')
 print kc_left
 
-fc_right = np.matrix((536.8138, 536.4765), dtype = 'float64')
-cc_right = np.matrix((326.2865, 250.1012),dtype = 'float64')
+fc_right = np.matrix((626.7081, 631.3745), dtype = 'float64')
+cc_right = np.matrix((309.3849, 216.5329),dtype = 'float64')
 alpha_c_right = np.array(0.000)
-kc_right = np.matrix((-0.2894, 0.10690, -0.0006, 0.0001, 0.0000), dtype = 'float64')
+kc_right = np.matrix((0.02157, -0.0617, -0.01068, 0.00486, 0.0000), dtype = 'float64')
 
 print kc_right
 #Extrinsic Parameters
-rot_vec = np.matrix((0.00669, 0.0045, -0.0035), dtype = 'float64')
+rot_vec = np.matrix((0.03528, -0.06943, 0.04552), dtype = 'float64')
 print rot_vec
-trans_vec = np.matrix((-99.8019, 1.2443, 0.05041), dtype = 'float64')
+trans_vec = np.matrix((409.23676, 7.52045, -43.40462), dtype = 'float64')
 print trans_vec 
 #read the frame by frame of the left camera
-cap_l = cv2.VideoCapture("/home/goelshivam12/my_video_left.avi")
+cap_l = cv2.VideoCapture("left.avi")
+#cap_l = cv2.VideoCapture(0)
 #read the frame by frame of the right camera
-cap_r = cv2.VideoCapture("/home/goelshivam12/my_video_right.avi")
-#height, width, channels = cap_l.shape
+cap_r = cv2.VideoCapture("right.avi")
+#cap_l = cv2.VideoCapture(1)
+
+# height, width, channels = cap_l.shape
 
 ret_test, frame_test = cap_l.read()
 width, height, channels = frame_test.shape
 print height, width, channels
 # 3X3 Camera Matrix 1 after Stereo Calibration 
+# the intrinsic camera parameters
 camera_Matrixleft = np.matrix(([fc_left[0, 0], 0, cc_left[0, 0]], [0, fc_left[0, 1], cc_left[0, 1]], [0, 0, 1]), dtype = 'float64')
 print camera_Matrixleft
 # 3X3 Camera Matrix 2 after Stereo Calibration
+# intrinsic right camera parameters
 camera_Matrixright = np.matrix(([fc_right[0, 0], 0, cc_right[0, 0]], [0, fc_right[0, 1], cc_right[0, 1]], [0, 0, 1]), dtype = 'float64')
 print camera_Matrixright
 #lets rectify the images
@@ -85,11 +92,16 @@ print P1
 P2 = np.zeros(shape = (3, 4), dtype = 'float64')
 print P2
 
+
+P1 = camera_Matrixleft * np.matrix(([1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]), dtype = 'float64')
+print P1
+P2 = camera_Matrixright * np.matrix(([1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]), dtype = 'float64') * np.matrix(([0.03528, 0, 0, 409.23676], [0, -0.069430, 0, 7.5204], [0, 0, 0.04552, -43.40462], [0, 0, 0, 1]), dtype = 'float64')
+print P2
 #Rectify the images
-cv2.stereoRectify(camera_Matrixleft, kc_left, camera_Matrixright, kc_right, (width, height), rot_vec, trans_vec, R1, R2, P1, P2, Q = None, flags = 0, alpha = -1, newImageSize = (0, 0))
+#cv2.stereoRectify(camera_Matrixleft, kc_left, camera_Matrixright, kc_right, (width, height), rot_vec, trans_vec, R1, R2, P1, P2, Q = None, flags = 0, alpha = -1, newImageSize = (0, 0))
 #undistort the images
-map1x , map1y = cv2.initUndistortRectifyMap(camera_Matrixleft, kc_left, R1, P1, (width, height))
-map2x , map2y = cv2.initUndistortRectifyMap(camera_Matrixright, kc_right, R2, P2, (width, height))
+#map1x , map1y = cv2.initUndistortRectifyMap(camera_Matrixleft, kc_left, R1, P1, (width, height))
+#map2x , map2y = cv2.initUndistortRectifyMap(camera_Matrixright, kc_right, R2, P2, (width, height))
 
 #remap the images
 image_U_left = np.zeros((height, width, 3), np.uint8)
@@ -108,19 +120,23 @@ while True:
 	#cv2.imshow('Left', gray_l)
 
 	#Remap using Rectification and Undistort
-	image_U_left = cv2.remap(frame_l, map1x, map1y, cv2.INTER_LINEAR, image_U_left, cv2.BORDER_CONSTANT, 0)
-	image_U_right = cv2.remap(frame_r, map2x, map2y, cv2.INTER_LINEAR)
+	
+	#image_U_left = cv2.remap(frame_l, map1x, map1y, cv2.INTER_LINEAR, image_U_left, cv2.BORDER_CONSTANT, 0)
+	#image_U_right = cv2.remap(frame_r, map2x, map2y, cv2.INTER_LINEAR)
 
 	stereo = cv2.StereoBM_create(numDisparities = 16, blockSize = 15)
 	#calculates the stereo pair of the images 
 	#finds the disparity map of the images
-	disparity = stereo.compute(image_U_left, image_U_right)
+	#disparity = stereo.compute(image_U_left, image_U_right)
 
-	print disparity
+	#print disparity
 
 	#perform object detection and identification
 	fgmask_l = fgbg.apply(frame_l)
 	fgmask_r = fgbg.apply(frame_r)
+
+	cv2.imshow('Left Mask', fgmask_l)
+	cv2.imshow('Right Mask', fgmask_r)
 
 	im_l, contours_l, hierarchy_l = cv2.findContours(frame_l, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 	im_r, contours_r, hierarchy_r = cv2.findContours(frame_r, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -134,8 +150,8 @@ while True:
 		cX_r = M_l["m10"] / M_l["m00"]
 		cY_r = M_l["m01"] / M_l["m00"]
 	#now find the co-ordinates of the point in 3D space
-	pts_l = np.asmatrix([cX_l], [cY_l])
-	pts_r = np.asmatrix([cX_r], [cY_r])
+	pts_l = np.matrix(([cX_l], [cY_l]), dtype = 'float64')
+	pts_r = np.matrix(([cX_r], [cY_r]), dtype = 'float64')
 	pts_final = np.zeros(shape = (4, 1))
 
 
@@ -155,9 +171,9 @@ while True:
 
 	
 	#it shows the disparity map of the images
-	plt.imshow(disparity, 'gray')
+	#plt.imshow(disparity, 'gray')
 	#prints the output
-	plt.show()
+	#plt.show()
 
 cap.release()
 cv2.destroyAllWindows()
