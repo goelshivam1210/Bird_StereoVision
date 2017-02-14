@@ -32,6 +32,9 @@ import imutils
 import math
 from scipy.stats import norm
 from numpy import linalg as LA
+from multiprocessing import Process
+import time
+from itertools import izip
 #declare global variables
 global cX_l, cX_r, cY_l, cY_r
 #save the camera parameters
@@ -133,38 +136,48 @@ while True:
 
 	#perform object detection and identification
 	fgmask_l = fgbg.apply(frame_l)
+
 	fgmask_r = fgbg.apply(frame_r)
 
 	cv2.imshow('Left Mask', fgmask_l)
 	cv2.imshow('Right Mask', fgmask_r)
 
+	cv2.waitKey(0)
+
 	im_l, contours_l, hierarchy_l = cv2.findContours(frame_l, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 	im_r, contours_r, hierarchy_r = cv2.findContours(frame_r, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+	print ("The left contours are {}".format(contours_l))
+	print ("The right contours are {}".format(contours_r))
 	
 	for c in contours_l:
 		M_l = cv2.moments(c)
 		cX_l = M_l["m10"] / M_l["m00"]
 		cY_l = M_l["m01"] / M_l["m00"]
+		print "X_l" + str(cX_l)+ "Y_l" + str(cY_l)
 	for c in contours_r:
-		M_l = cv2.moments(c)
-		cX_r = M_l["m10"] / M_l["m00"]
-		cY_r = M_l["m01"] / M_l["m00"]
+		M_r = cv2.moments(c)
+		cX_r = M_r["m10"] / M_r["m00"]
+		cY_r = M_r["m01"] / M_r["m00"]
+		print "X_r" + str(cX_r)+ "Y_r" + str(cY_r)
+
 	#now find the co-ordinates of the point in 3D space
 	pts_l = np.matrix(([cX_l], [cY_l]), dtype = 'float64')
+	print ("The points in left image are{}".format(pts_l))
 	pts_r = np.matrix(([cX_r], [cY_r]), dtype = 'float64')
+	print ("The points in right image are{}".format(pts_r))
 	pts_final = np.zeros(shape = (4, 1))
 
 
 	cv2.triangulatePoints(P1, P2, pts_l, pts_r, pts_final)
+	pts_final /= pts_final[3]
+	print ("The Final points{}".format(pts_final))
 	#find the norm of the vector to find the distance of the detected object.
 	distance = LA.norm(pts_final)
+	distance /= 10000
 	print distance
 
-
-
-
-
-
+	
     # fgmask_r = fgbg.apply(frame_r)
 	# im_r, contours_r, hierarchy_r = cv2.findContours(frame_r, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
